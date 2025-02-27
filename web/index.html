@@ -983,16 +983,15 @@
             try {
                 setupCanvas();
 
-                // iOS 相容性配置
+                // iOS 特定相機配置
                 const constraints = {
                     audio: false,
                     video: {
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 },
+                        width: 1280,
+                        height: 720,
                         facingMode: 'user',
-                        // iOS 特定配置
-                        deviceId: undefined,
-                        frameRate: { ideal: 30 }
+                        // iOS 特定優化
+                        frameRate: 30
                     }
                 };
 
@@ -1004,13 +1003,30 @@
 
                 // 獲取視訊流
                 const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                
+                // 設置視訊元素屬性
+                video.setAttribute('playsinline', ''); // iOS Safari 需要
+                video.setAttribute('webkit-playsinline', ''); // iOS Safari 需要
+                video.setAttribute('autoplay', '');
+                video.setAttribute('muted', '');
+                
+                // 設置視訊流
                 video.srcObject = stream;
                 
-                // 等待視訊元素載入
+                // 確保視訊元素正確顯示
+                video.style.display = 'block';
+                video.style.opacity = '1';
+                
+                // 等待視訊元素載入並播放
                 await new Promise((resolve) => {
-                    video.onloadedmetadata = () => {
-                        video.play().catch(console.error);
-                        resolve();
+                    video.onloadedmetadata = async () => {
+                        try {
+                            await video.play();
+                            resolve();
+                        } catch (error) {
+                            console.error('視訊播放錯誤:', error);
+                            resolve(); // 繼續執行
+                        }
                     };
                 });
 
@@ -1025,10 +1041,6 @@
                 
                 await camera.start();
                 errorMessage.style.display = 'none';
-
-                // 確保視訊元素正確顯示
-                video.style.opacity = '1';
-                video.style.transform = 'translate(-50%, -50%) scaleX(1)';
                 
             } catch (err) {
                 console.error('攝像頭存取錯誤:', err);
